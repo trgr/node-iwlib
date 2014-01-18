@@ -1,5 +1,6 @@
 #include <node.h>
 #include <iwlib.h>
+#include <errno.h>
 #include "node-iwlib.h"
 
 using namespace v8;
@@ -25,10 +26,16 @@ void iwlib::Init(Handle<Object> exports){
 Handle<Value> iwlib::New(const Arguments& args){
   HandleScope scope;
   iwlib* obj = new iwlib();
-  obj->socket = iw_sockets_open();
+
+  //Try to open a socket
+  if((obj->socket = iw_sockets_open()) <0){
+    ThrowException(String::New(strerror(errno)));
+  }
+  
   obj->Wrap(args.This());
   return args.This();
 }
+
 
 Handle<Value> iwlib::IWScan(const Arguments& args){
   HandleScope scope;
@@ -36,14 +43,34 @@ Handle<Value> iwlib::IWScan(const Arguments& args){
   wireless_scan_head head;
   wireless_scan *result;
   iwrange range;
-  
-  iw_get_range_info(obj->socket,"wlp6s0",&range);
-  iw_scan(obj->socket,"wlp6s0",range.we_version_compiled,&head);
-  result = head.result;
 
+  if( args.Length() != 1){
+    ThrowException(Exception::TypeError(String::New("Scan expects interface_name as first argument")));
+    return scope.Close(Undefined());
+  }
+  
+  if(!args[0]->IsString()){
+    ThrowException(Exception::TypeError(String::New("Scan expects first argument to be string")));
+  }
+  
+  /* Coax our v8::string string into char* */
+  Local<String> v8interface = args[0]->ToString();
+  String::Utf8Value uinterface(v8interface);
+  char* interface(*uinterface);
+  
+  if(iw_get_range_info(obj->socket,interface,&range) < 0){
+    return scope.Close(Undefined());
+  }
+
+  if(iw_scan(obj->socket,interface,range.we_version_compiled,&head) < 0){
+    return scope.Close(Undefined());
+  }
+
+  result = head.result;
+  
+  /* Pupulate a return array with the contents of the wireless_scan linked list*/
   Local<Array> results =Array::New();
   int i = 0;
-  /* Only exposing wireless_scan for now*/
   while(result != NULL) { 
     Local<Object> ws = Object::New();
     Local<Object> iwscan = Object::New();
