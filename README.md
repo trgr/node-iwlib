@@ -5,6 +5,6 @@ So far only iw_scan/get_kernel_we_version is implemented, and the interface is n
 ```
 var iwlib = require("iwlib").iwlib
 var iw = new iwlib()
-console.log(iw.scan("wlan0")
+console.log(iw.scan("wlan0"))
 console.log(iw.get_kernel_we_version())
 ```
