@@ -1,7 +1,7 @@
 {
   "name": "iwlib",
-  "version": "0.0.0",
-  "description": "",
+  "version": "0.0.1",
+  "description": "A classlibrary exposing some of the functionality of iwlib. Mainly useful for getting list of access points at the moment. Requires that you have installed a package providing the iwlib (wireless_tools on arch) ",
   "main": "build/Release/iwlib",
   "scripts": {
     "install": "node-gyp rebuild"

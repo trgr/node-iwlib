@@ -1,1 +1,0 @@
-cmd_Release/obj.target/iwlib.node := flock ./Release/linker.lock g++ -shared -pthread -rdynamic -m64  -Wl,-soname=iwlib.node -o Release/obj.target/iwlib.node -Wl,--start-group Release/obj.target/iwlib/src/module.o Release/obj.target/iwlib/src/node-iwlib.o -Wl,--end-group -liw
