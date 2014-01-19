@@ -16,6 +16,7 @@ void iwlib::Init(Handle<Object> exports){
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(String::NewSymbol("iwlib"));
   NODE_SET_PROTOTYPE_METHOD(tpl,"scan",iwlib::IWScan);
+  NODE_SET_PROTOTYPE_METHOD(tpl,"get_kernel_we_version",iwlib::IWGetKernelWEVersion);
   
   constructor = Persistent<Function>::New(tpl->GetFunction());
   exports->Set(String::NewSymbol("iwlib"), constructor);
@@ -36,6 +37,11 @@ Handle<Value> iwlib::New(const Arguments& args){
   return args.This();
 }
 
+Handle<Value> iwlib::IWGetKernelWEVersion(const Arguments& args){
+  HandleScope scope;
+  int result = iw_get_kernel_we_version();
+  return scope.Close(Number::New(result));
+}
 
 Handle<Value> iwlib::IWScan(const Arguments& args){
   HandleScope scope;
@@ -77,7 +83,7 @@ Handle<Value> iwlib::IWScan(const Arguments& args){
     
     iwscan->Set(String::NewSymbol("name"),String::New(result->b.name));
     iwscan->Set(String::NewSymbol("has_nwid"),Number::New(result->b.has_nwid));
-    /* add iwparam*/
+    iwscan->Set(String::NewSymbol("nwid"),Number::New(result->b.nwid.value)); /* Only returning the value of the iw_param struct for now*/
     iwscan->Set(String::NewSymbol("has_freq"),Number::New(result->b.has_freq));
     iwscan->Set(String::NewSymbol("freq"),Number::New(result->b.freq));
     iwscan->Set(String::NewSymbol("freq_flags"),Number::New(result->b.freq_flags));
