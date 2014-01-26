@@ -15,6 +15,8 @@ class iwlib : public node::ObjectWrap{
   static v8::Handle<v8::Value> IWGetKernelWEVersion(const v8::Arguments& args);
   static v8::Handle<v8::Value> IWScan(const v8::Arguments& args);
   static v8::Handle<v8::Value> IWEnumDevices(const v8::Arguments& args);
+  static v8::Handle<v8::Value> GetBasicConfig(const v8::Arguments& args);
+  static v8::Local<v8::Object> ParseWirelessConfig(wireless_config& config);
   static v8::Persistent<v8::Function> constructor;
   int socket;
 };

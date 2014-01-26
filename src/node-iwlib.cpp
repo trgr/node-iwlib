@@ -16,6 +16,7 @@ void iwlib::Init(Handle<Object> exports){
   tpl->InstanceTemplate()->SetInternalFieldCount(1);
   tpl->SetClassName(String::NewSymbol("iwlib"));
   NODE_SET_PROTOTYPE_METHOD(tpl,"scan",iwlib::IWScan);
+  NODE_SET_PROTOTYPE_METHOD(tpl,"get_basic_config",iwlib::GetBasicConfig);
   NODE_SET_PROTOTYPE_METHOD(tpl,"get_kernel_we_version",iwlib::IWGetKernelWEVersion);
   
   constructor = Persistent<Function>::New(tpl->GetFunction());
@@ -41,6 +42,35 @@ Handle<Value> iwlib::IWGetKernelWEVersion(const Arguments& args){
   HandleScope scope;
   int result = iw_get_kernel_we_version();
   return scope.Close(Number::New(result));
+}
+
+Handle<Value> iwlib::GetBasicConfig(const Arguments& args){
+  HandleScope scope;
+  iwlib* obj = ObjectWrap::Unwrap<iwlib>(args.This());
+  
+  wireless_config result;
+  
+  if( args.Length() != 1){
+    ThrowException(Exception::TypeError(String::New("get_basic_config expects interface_name as first argument")));
+    return scope.Close(Undefined());
+  }
+  if(!args[0]->IsString()){
+    ThrowException(Exception::TypeError(String::New("get_basic_config expects first argument to be string")));
+  }
+  
+  /* Coax our v8::string string into char* */
+  Local<String> v8interface = args[0]->ToString();
+  String::Utf8Value uinterface(v8interface);
+  char* interface(*uinterface);
+  
+  if(iw_get_basic_config(obj->socket,interface,&result) < 0){
+    return scope.Close(Undefined());
+  }
+  
+  Local<Object> basic_config = ParseWirelessConfig(result);
+  
+  return scope.Close(basic_config);
+  
 }
 
 Handle<Value> iwlib::IWScan(const Arguments& args){
@@ -74,37 +104,42 @@ Handle<Value> iwlib::IWScan(const Arguments& args){
 
   result = head.result;
   
-  /* Pupulate a return array with the contents of the wireless_scan linked list*/
+  /* Populate a return array with the contents of the wireless_scan linked list*/
   Local<Array> results =Array::New();
   int i = 0;
+
   while(result != NULL) { 
     Local<Object> ws = Object::New();
-    Local<Object> iwscan = Object::New();
-    
-    iwscan->Set(String::NewSymbol("name"),String::New(result->b.name));
-    iwscan->Set(String::NewSymbol("has_nwid"),Number::New(result->b.has_nwid));
-    iwscan->Set(String::NewSymbol("nwid"),Number::New(result->b.nwid.value)); /* Only returning the value of the iw_param struct for now*/
-    iwscan->Set(String::NewSymbol("has_freq"),Number::New(result->b.has_freq));
-    iwscan->Set(String::NewSymbol("freq"),Number::New(result->b.freq));
-    iwscan->Set(String::NewSymbol("freq_flags"),Number::New(result->b.freq_flags));
-    iwscan->Set(String::NewSymbol("has_key"),Number::New(result->b.has_key));
-    iwscan->Set(String::NewSymbol("key"),String::New(reinterpret_cast<char*>(result->b.key)));
-    iwscan->Set(String::NewSymbol("key_size"),Number::New(result->b.key_size));
-    iwscan->Set(String::NewSymbol("key_flags"),Number::New(result->b.key_flags));
-    iwscan->Set(String::NewSymbol("has_essid"),Number::New(result->b.has_essid));
-    iwscan->Set(String::NewSymbol("essid_on"),Number::New(result->b.essid_on));
-    iwscan->Set(String::NewSymbol("essid"),String::New(result->b.essid));
-    iwscan->Set(String::NewSymbol("has_mode"),Number::New(result->b.has_mode));
-    iwscan->Set(String::NewSymbol("mode"),Number::New(result->b.mode));
+    Local<Object> iwscan = ParseWirelessConfig(result->b); 
     
     ws->Set(String::NewSymbol("wireless_scan"),iwscan);
     
     results->Set(i,ws);
     result = result->next;
+
     i++;
   }
   
-  
-  
   return scope.Close(results);
+}
+
+
+Local<Object> iwlib::ParseWirelessConfig(wireless_config& config){
+  Local<Object> basic_config = Object::New();
+  basic_config->Set(String::NewSymbol("name"),String::New(config.name));
+  basic_config->Set(String::NewSymbol("has_nwid"),Number::New(config.has_nwid));
+  basic_config->Set(String::NewSymbol("nwid"),Number::New(config.nwid.value)); /* Only returning the value of the iw_param struct for now*/
+  basic_config->Set(String::NewSymbol("has_freq"),Number::New(config.has_freq));
+  basic_config->Set(String::NewSymbol("freq"),Number::New(config.freq));
+  basic_config->Set(String::NewSymbol("freq_flags"),Number::New(config.freq_flags));
+  basic_config->Set(String::NewSymbol("has_key"),Number::New(config.has_key));
+  basic_config->Set(String::NewSymbol("key"),String::New(reinterpret_cast<char*>(config.key)));
+  basic_config->Set(String::NewSymbol("key_size"),Number::New(config.key_size));
+  basic_config->Set(String::NewSymbol("key_flags"),Number::New(config.key_flags));
+  basic_config->Set(String::NewSymbol("has_essid"),Number::New(config.has_essid));
+  basic_config->Set(String::NewSymbol("essid_on"),Number::New(config.essid_on));
+  basic_config->Set(String::NewSymbol("essid"),String::New(config.essid));
+  basic_config->Set(String::NewSymbol("has_mode"),Number::New(config.has_mode));
+  basic_config->Set(String::NewSymbol("mode"),Number::New(config.mode));
+  return basic_config;
 }
